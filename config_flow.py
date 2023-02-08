@@ -87,9 +87,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_encryption_key(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        if user_input is not None:
-            if "encryption_key" in user_input:
-                self.encryption_key = user_input["encryption_key"]
+        if user_input is None:
+            return self.async_show_form(
+                step_id="encryption_key",
+                data_schema=vol.Schema({vol.Required("host"): str}),
+                description_placeholders={"name": self.name},
+            )
+
+        if "encryption_key" in user_input:
+            self.encryption_key = user_input["encryption_key"]
 
         errors = {}
 
@@ -114,6 +120,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="encryption_key",
+            data_schema=vol.Schema({vol.Required("host"): str}),
             errors=errors,
         )
 
@@ -122,11 +129,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle user-confirmation of discovered node."""
 
-        if self.encrypted is True:
+        if user_input is None:
             return self.async_show_form(
-                step_id="encryption_key",
-                data_schema=vol.Schema({vol.Required("encryption_key"): str}),
+                step_id="discovery_confirm",
+                description_placeholders={"name": self.name},
             )
+
+        if self.encrypted is True:
+            return await self.async_step_encryption_key()
 
         errors = {}
 
@@ -193,7 +203,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.device_name = device_name
         self.host = device_name
         self.port = 80
-        self.encrypted = False
+        self.encrypted = True
 
         errors = {}
 
@@ -207,6 +217,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
+            if self.encrypted is True:
+                return await self.async_step_encryption_key()
             config = {
                 "host": self.host,
                 "port": self.port,
