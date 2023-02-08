@@ -1,0 +1,19 @@
+{
+  "domain": "espsimple",
+  "name": "ESP Simple Devices",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/espsimple",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [ "_espsimple._tcp_local." ],
+  "homekit": {},
+  "dependencies": [],
+  "after_dependencies": [
+    "zeroconf"
+  ],
+  "codeowners": [
+    "@mkenfenheuer"
+  ],
+  "iot_class": "local_push",
+  "version": "1.0"
+}
