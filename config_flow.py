@@ -94,12 +94,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle user-confirmation of discovered node."""
-        if user_input is not None:
-            return self.async_show_form(
-                step_id="encryption_key",
-                data_schema=vol.Schema({vol.Required("encryption_key"): str}),
-                description_placeholders={"name": self._name},
-            )
+        # if user_input is not None:
+        #    return self.async_show_form(
+        #        step_id="encryption_key",
+        #        data_schema=vol.Schema({vol.optional("encryption_key"): str}),
+        #        description_placeholders={"name": self._name},
+        #    )
         return self.async_show_form(
             step_id="discovery_confirm", description_placeholders={"name": self._name}
         )
