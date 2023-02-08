@@ -87,8 +87,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_encryption_key(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        if "encryption_key" in user_input:
-            self.encryption_key = user_input["encryption_key"]
+        if user_input is not None:
+            if "encryption_key" in user_input:
+                self.encryption_key = user_input["encryption_key"]
 
         errors = {}
 
