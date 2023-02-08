@@ -5,7 +5,7 @@
   "documentation": "https://www.home-assistant.io/integrations/espsimple",
   "requirements": [],
   "ssdp": [],
-  "zeroconf": [ "_espsimple._tcp_local." ],
+  "zeroconf": [ "_espsimple._tcp.local." ],
   "homekit": {},
   "dependencies": [],
   "after_dependencies": [
