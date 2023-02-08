@@ -2,24 +2,18 @@
 from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import TEMP_CELSIUS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
+from homeassistant.helpers.typing import StateType
 
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt
-from homeassistant.util.enum import try_parse_enum
 
 
 async def async_setup_entry(
