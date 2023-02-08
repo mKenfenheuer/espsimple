@@ -97,7 +97,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             data_schema=STEP_USER_DATA_SCHEMA,
             step_id="discovery_confirm",
-            description_placeholders={"name": self._name},
+            description_placeholders={"host": self._name},
         )
 
     async def async_step_zeroconf(
