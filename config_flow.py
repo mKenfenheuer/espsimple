@@ -95,7 +95,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle user-confirmation of discovered node."""
         if user_input is not None:
-            return await self.async_show_form(
+            return self.async_show_form(
                 step_id="encryption_key",
                 data_schema=vol.Schema({vol.Required("encryption_key"): str}),
                 description_placeholders={"name": self._name},
