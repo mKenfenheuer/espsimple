@@ -84,17 +84,49 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # The device name as per its config
         self.device_name: str | None = None
 
+    async def async_step_encryption_key(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        self.encryption_key = user_input["encryption_key"]
+        errors = {}
+
+        try:
+            await validate_input(self.hass, self)
+        except CannotConnect:
+            errors["base"] = "cannot_connect"
+        except InvalidAuth:
+            errors["base"] = "invalid_auth"
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            errors["base"] = "unknown"
+        else:
+            config = {
+                "host": self.host,
+                "port": self.port,
+                "name": self.name,
+                "encryption_key": self.encryption_key,
+                "encrypted": self.encrypted,
+            }
+            return self.async_create_entry(title=self.name, data=config)
+
+        return self.async_show_form(
+            step_id="encryption_key",
+            errors=errors,
+        )
+
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle user-confirmation of discovered node."""
-        if user_input is not None:
+
+        if self.encrypted is True:
             return self.async_show_form(
                 step_id="encryption_key",
                 data_schema=vol.Schema({vol.Required("encryption_key"): str}),
-                description_placeholders={"host": self.host},
             )
+
         errors = {}
+
         try:
             await validate_input(self.hass, self)
         except CannotConnect:
@@ -132,7 +164,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.device_name = device_name
         self.host = discovery_info.host
         self.port = discovery_info.port
-        self.encrypted = False
+        self.encrypted = True
 
         # Check if already configured
         await self.async_set_unique_id(device_name)
@@ -150,6 +182,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
             )
+
+        # Hostname is format: livingroom.local.
+        device_name = user_input["host"]
+
+        self.name = device_name
+        self.device_name = device_name
+        self.host = device_name
+        self.port = 80
+        self.encrypted = False
 
         errors = {}
 
