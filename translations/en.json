@@ -1,20 +1,30 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "encryption_key": "Device Encryption Key",
-                    "host": "Host"
-                }
-            }
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "encryption_key": "Device Encryption Key",
+          "host": "Host"
         }
+      },
+      "discovery_confirm": {
+        "description": "Do you want to add the ESP Simple device `{name}` to Home Assistant?",
+        "title": "Discovered ESP Simple device"
+      },
+      "encryption_key": {
+        "data": {
+          "encryption_key": "Encryption key"
+        },
+        "description": "Please enter the encryption key for {name}."
+      }
     }
+  }
 }
