@@ -44,7 +44,7 @@ class PlaceholderHub:
         return True
 
 
-async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
+async def validate_input(hass: HomeAssistant, flow: ConfigFlow):
     """Validate the user input allows us to connect.
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
@@ -57,22 +57,16 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     #     your_validate_func, data["username"], data["password"]
     # )
 
-    hub = PlaceholderHub(data["host"])
+    hub = PlaceholderHub(flow.host)
 
-    encryption_key = ""
-
-    if "encryption_key" in data:
-        encryption_key = data["encryption_key"]
-        if not await hub.authenticate(data["encryption_key"]):
+    if flow.encrypted is True:
+        if not await hub.authenticate(flow.encryption_key):
             raise InvalidAuth
 
     # If you cannot connect:
     # throw CannotConnect
     # If the authentication is wrong:
     # InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    return {"title": data["host"], "encryption_key": encryption_key}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -82,12 +76,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize flow."""
-        self._host: str | None = None
-        self._port: int | None = None
-        self._encryption_key: str | None = None
-        self._name: str | None = None
+        self.host: str | None = None
+        self.port: int | None = None
+        self.encryption_key: str | None = None
+        self.encrypted: bool | None = None
+        self.name: str | None = None
         # The device name as per its config
-        self._device_name: str | None = None
+        self.device_name: str | None = None
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -97,11 +92,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(
                 step_id="encryption_key",
                 data_schema=vol.Schema({vol.Required("encryption_key"): str}),
-                description_placeholders={"name": self._name},
+                description_placeholders={"host": self.host},
             )
         errors = {}
         try:
-            info = await validate_input(self.hass, user_input)
+            await validate_input(self.hass, self)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
@@ -110,11 +105,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
-            return self.async_create_entry(title=info["title"], data=user_input)
+            config = {
+                "host": self.host,
+                "port": self.port,
+                "name": self.name,
+                "encryption_key": self.encryption_key,
+                "encrypted": self.encrypted,
+            }
+            return self.async_create_entry(title=self.name, data=config)
 
         return self.async_show_form(
             step_id="discovery_confirm",
-            description_placeholders={"name": self._name},
+            description_placeholders={"name": self.name},
             errors=errors,
         )
 
@@ -126,15 +128,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Hostname is format: livingroom.local.
         device_name = discovery_info.hostname.removesuffix(".local.")
 
-        self._name = discovery_info.properties.get("friendly_name", device_name)
-        self._device_name = device_name
-        self._host = discovery_info.host
-        self._port = discovery_info.port
+        self.name = discovery_info.properties.get("friendly_name", device_name)
+        self.device_name = device_name
+        self.host = discovery_info.host
+        self.port = discovery_info.port
+        self.encrypted = False
 
         # Check if already configured
         await self.async_set_unique_id(device_name)
         self._abort_if_unique_id_configured(
-            updates={CONF_HOST: self._host, CONF_PORT: self._port}
+            updates={CONF_HOST: self.host, CONF_PORT: self.port}
         )
 
         return await self.async_step_discovery_confirm()
@@ -151,7 +154,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            info = await validate_input(self.hass, user_input)
+            await validate_input(self.hass, self)
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
@@ -160,7 +163,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
-            return self.async_create_entry(title=info["title"], data=user_input)
+            config = {
+                "host": self.host,
+                "port": self.port,
+                "name": self.name,
+                "encryption_key": self.encryption_key,
+                "encrypted": self.encrypted,
+            }
+            return self.async_create_entry(title=self.name, data=config)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
