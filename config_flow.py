@@ -2,9 +2,13 @@
 from __future__ import annotations
 
 import logging
+import json
+import random
+import string
 from typing import Any
 
 import voluptuous as vol
+import requests
 
 from homeassistant.components import zeroconf
 from homeassistant import config_entries
@@ -69,6 +73,50 @@ async def validate_input(hass: HomeAssistant, flow: ConfigFlow):
     # InvalidAuth
 
 
+def get_device_info(flow: ConfigFlow):
+    url = "http://" + flow.host + ":" + str(flow.port) + "/info"
+    info = requests.get(url)
+
+    if info.status_code is not 200:
+        return None
+
+    infojson = info.json()
+
+    if "friendly_name" in infojson:
+        flow.name = infojson["friendly_name"]
+    if "sensors" not in infojson:
+        raise Exception("No sensors defined.")
+
+    flow.info = infojson
+
+
+def get_random_string(length) -> str:
+    # choose from all lowercase letter
+    letters = string.ascii_lowercase
+    result_str = "".join(random.choice(letters) for i in range(length))
+    return result_str
+
+
+def adopt_device(flow: ConfigFlow):
+    flow.info = flow.info
+    flow.config = {
+        "encryption_key": get_random_string(16),
+        "host": flow.host,
+        "port": flow.port,
+        "device_name": flow.device_name,
+        "friendly_name": flow.name,
+        "sensors": flow.info["sensors"],
+    }
+    url = "http://" + flow.host + ":" + str(flow.port) + "/adopt"
+    response = requests.post(
+        url, data={"ha_instance": "hello", "key": flow.config["encryption_key"]}
+    )
+    if response.status_code is not 200:
+        flow.errors["base"] = "Could not adopt device. Code: " + str(
+            response.status_code
+        )
+
+
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for ESP Simple Devices."""
 
@@ -81,21 +129,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.encryption_key: str | None = None
         self.encrypted: bool | None = None
         self.name: str | None = None
+        self.info: Any = None
+        self.config: Any = None
         # The device name as per its config
         self.device_name: str | None = None
 
-    async def async_step_encryption_key(
+    async def async_step_device_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is None:
             return self.async_show_form(
-                step_id="encryption_key",
-                data_schema=vol.Schema({vol.Required("host"): str}),
+                step_id="device_settings",
+                data_schema=vol.Schema(
+                    {vol.Required("friendly_name", default=self.name): str}
+                ),
                 description_placeholders={"name": self.name},
             )
 
-        if "encryption_key" in user_input:
-            self.encryption_key = user_input["encryption_key"]
+        if "friendly_name" in user_input:
+            self.name = user_input["friendly_name"]
 
         errors = {}
 
@@ -109,18 +161,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
-            config = {
-                "host": self.host,
-                "port": self.port,
-                "name": self.name,
-                "encryption_key": self.encryption_key,
-                "encrypted": self.encrypted,
-            }
-            return self.async_create_entry(title=self.name, data=config)
+            await self.hass.async_add_executor_job(adopt_device, self)
+            return self.async_create_entry(title=self.name, data=self.config)
 
         return self.async_show_form(
-            step_id="encryption_key",
-            data_schema=vol.Schema({vol.Required("host"): str}),
+            step_id="device_settings",
+            data_schema=vol.Schema(
+                {vol.Required("friendly_name", default=self.name): str}
+            ),
             errors=errors,
         )
 
@@ -135,35 +183,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 description_placeholders={"name": self.name},
             )
 
-        if self.encrypted is True:
-            return await self.async_step_encryption_key()
+        await self.hass.async_add_executor_job(get_device_info, self)
 
-        errors = {}
-
-        try:
-            await validate_input(self.hass, self)
-        except CannotConnect:
-            errors["base"] = "cannot_connect"
-        except InvalidAuth:
-            errors["base"] = "invalid_auth"
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected exception")
-            errors["base"] = "unknown"
-        else:
-            config = {
-                "host": self.host,
-                "port": self.port,
-                "name": self.name,
-                "encryption_key": self.encryption_key,
-                "encrypted": self.encrypted,
-            }
-            return self.async_create_entry(title=self.name, data=config)
-
-        return self.async_show_form(
-            step_id="discovery_confirm",
-            description_placeholders={"name": self.name},
-            errors=errors,
-        )
+        return await self.async_step_device_settings()
 
     async def async_step_zeroconf(
         self, discovery_info: zeroconf.ZeroconfServiceInfo
@@ -177,7 +199,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.device_name = device_name
         self.host = discovery_info.host
         self.port = discovery_info.port
-        self.encrypted = True
 
         # Check if already configured
         await self.async_set_unique_id(device_name)
@@ -193,7 +214,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA
+                step_id="user", data_schema=vol.Schema({vol.Required("host"): str})
             )
 
         # Hostname is format: livingroom.local.
@@ -202,8 +223,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.name = device_name
         self.device_name = device_name
         self.host = device_name
-        self.port = 80
-        self.encrypted = True
+        self.port = 8901
+
+        await self.hass.async_add_executor_job(get_device_info, self)
 
         errors = {}
 
@@ -217,16 +239,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
-            if self.encrypted is True:
-                return await self.async_step_encryption_key()
-            config = {
-                "host": self.host,
-                "port": self.port,
-                "name": self.name,
-                "encryption_key": self.encryption_key,
-                "encrypted": self.encrypted,
-            }
-            return self.async_create_entry(title=self.name, data=config)
+            return await self.async_step_device_settings()
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors

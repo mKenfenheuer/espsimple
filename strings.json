@@ -11,7 +11,6 @@
     "step": {
       "user": {
         "data": {
-          "encryption_key": "Device Encryption Key",
           "host": "Host"
         }
       },
@@ -19,11 +18,12 @@
         "description": "Do you want to add the ESP Simple device `{name}` to Home Assistant?",
         "title": "Discovered ESP Simple device"
       },
-      "encryption_key": {
+      "device_settings": {
         "data": {
-          "encryption_key": "Encryption key"
+          "encryption_key": "Encryption key",
+          "friendly_name": "Device name"
         },
-        "description": "Please enter the encryption key for {name}."
+        "description": "Please enter the device information for {name}."
       }
     }
   }

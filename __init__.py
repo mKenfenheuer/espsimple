@@ -4,6 +4,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from .socket_server import ESPSimpleSocketServer
 
 from .const import DOMAIN
 
@@ -11,9 +12,16 @@ from .const import DOMAIN
 # For your initial PR, limit it to 1 platform.
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
+SOCKET_SERVER: ESPSimpleSocketServer | None = None
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up ESP Simple Devices from a config entry."""
+    global SOCKET_SERVER
+
+    if SOCKET_SERVER is None:
+        SOCKET_SERVER = ESPSimpleSocketServer(hass)
+        SOCKET_SERVER.start()
 
     hass.data.setdefault(DOMAIN, {})
     # TODO 1. Create API instance

@@ -13,27 +13,34 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 
+DEVICE_LIST: list = list()
+
 from homeassistant.config_entries import ConfigEntry
+
+
+def add_sensor(sensor: ESPSimpleSensor, async_add_entities: AddEntitiesCallback):
+    global DEVICE_LIST
+    DEVICE_LIST.append(sensor)
+    async_add_entities([sensor])
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up esphome sensors based on a config entry."""
-    async_add_entities(
-        [
-            ESPSimpleSensor(
-                hass,
-                entry,
-                ESPSimpleSensorInfo(
-                    entry.title + " " + "Temperature",
-                    entry.domain + "_" + entry.title + "_" + "temperature",
-                    "°C",
-                    SensorDeviceClass.TEMPERATURE,
-                    SensorStateClass.MEASUREMENT,
-                ),
-            )
-        ]
+    add_sensor(
+        ESPSimpleSensor(
+            hass,
+            entry,
+            ESPSimpleSensorInfo(
+                entry.title + " " + "Temperature",
+                entry.domain + "_" + entry.title + "_" + "temperature",
+                "°C",
+                SensorDeviceClass.TEMPERATURE,
+                SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        async_add_entities,
     )
 
 
