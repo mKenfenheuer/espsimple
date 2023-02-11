@@ -77,13 +77,15 @@ def get_device_info(flow: ConfigFlow):
     url = "http://" + flow.host + ":" + str(flow.port) + "/info"
     info = requests.get(url)
 
-    if info.status_code is not 200:
+    if info.status_code != 200:
         return None
 
     infojson = info.json()
 
     if "friendly_name" in infojson:
         flow.name = infojson["friendly_name"]
+    if "device_id" not in infojson:
+        raise Exception("No device_id specified.")
     if "sensors" not in infojson:
         raise Exception("No sensors defined.")
 
@@ -104,6 +106,7 @@ def adopt_device(flow: ConfigFlow):
         "host": flow.host,
         "port": flow.port,
         "device_name": flow.device_name,
+        "device_id": flow.info["device_id"],
         "friendly_name": flow.name,
         "sensors": flow.info["sensors"],
     }
@@ -111,7 +114,7 @@ def adopt_device(flow: ConfigFlow):
     response = requests.post(
         url, data={"ha_instance": "hello", "key": flow.config["encryption_key"]}
     )
-    if response.status_code is not 200:
+    if response.status_code != 200:
         flow.errors["base"] = "Could not adopt device. Code: " + str(
             response.status_code
         )
