@@ -113,7 +113,10 @@ def adopt_device(flow: ConfigFlow):
     url = "http://" + flow.host + ":" + str(flow.port) + "/adopt"
     response = requests.post(
         url,
-        data={"ha_instance": "hello", "key": flow.config["encryption_key"]},
+        data={
+            "ha_instance": flow.hass.data["core.uuid"],
+            "key": flow.config["encryption_key"],
+        },
         timeout=10,
     )
     if response.status_code != 200:
