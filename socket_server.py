@@ -152,10 +152,10 @@ class ESPSimpleSocketServer:
         if not type:
             return
 
-        if type[0] is 0:
+        if type[0] == 0:
             self.handle_registration(client, addr)
 
-        if type[0] is 1:
+        if type[0] == 1:
             self.handle_update(client, addr)
 
     def server_thread(self) -> None:

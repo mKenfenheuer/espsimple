@@ -5,6 +5,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from .socket_server import ESPSimpleSocketServer
+from homeassistant.components import zeroconf
+from zeroconf.asyncio import AsyncServiceInfo
+
+import socket
 
 from .const import DOMAIN
 
@@ -13,6 +17,24 @@ from .const import DOMAIN
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 __SOCKET_SERVER__: ESPSimpleSocketServer | None = None
+
+
+async def register_service(hass: HomeAssistant):
+    aiozc = await zeroconf.async_get_async_instance(hass)
+    ip_list = list()
+    adapters = hass.data["network"].adapters
+    for adapter in adapters:
+        for ip in adapter["ipv4"]:
+            if ip["address"] != "127.0.0.1":
+                ip_list.append(socket.inet_aton(ip["address"]))
+    info = AsyncServiceInfo(
+        type_="_espsmplsrvr._tcp.local.",
+        name="_espsmplsrvr._tcp.local.",
+        addresses=ip_list,
+        port=8901,
+        properties={},
+    )
+    await aiozc.async_register_service(info)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -30,6 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await register_service(hass)
 
     return True
 
