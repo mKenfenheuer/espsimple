@@ -9,6 +9,7 @@ from homeassistant.components import zeroconf
 from zeroconf.asyncio import AsyncServiceInfo
 from homeassistant.core import logging
 from homeassistant.components.network import async_get_enabled_source_ips
+from .espsimple import *
 
 import socket
 
@@ -44,12 +45,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         __SOCKET_SERVER__.start()
         await register_service(hass)
 
-    hass.data.setdefault(DOMAIN, {})
-    # TODO 1. Create API instance
-    # TODO 2. Validate the API connection (and authentication)
-    # TODO 3. Store an API object for your platforms to access
-    # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -58,6 +53,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        hass.data[DOMAIN].pop(entry.entry_id)
+        device = ESPSimpleDeviceRegistry.get_device(entry.data["device_id"])
+        ESPSimpleDeviceRegistry.remove_device(entry.data["device_id"])
+        device.remove_all_sensors()
+
+    ESPSimpleStorage.set_devices(ESPSimpleDeviceRegistry.device_list)
 
     return unload_ok

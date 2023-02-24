@@ -37,7 +37,7 @@ class ESPSimpleDeviceRegistry:
     def remove_device(id_str: str) -> None:
         """Removes devices"""
         for d in ESPSimpleDeviceRegistry.device_list:
-            if d.unique_id == id_str:
+            if d.device_id == id_str:
                 ESPSimpleDeviceRegistry.device_list.remove(d)
 
 
@@ -68,6 +68,15 @@ class ESPSimpleDevice:
         self.sensors.append(sensor)
         if add_entity:
             self.entity_platform.add_entities([sensor])
+
+    def remove_sensor(self, sensor: Any) -> None:
+        """Removes a sensor"""
+        self.entity_platform.async_remove_entity(sensor.unique_id)
+
+    def remove_all_sensors(self) -> None:
+        """Removes all sensors"""
+        for sensor in self.sensors:
+            self.remove_sensor(sensor)
 
 
 class ESPSimpleSensorInfo:
