@@ -5,7 +5,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from .socket_server import ESPSimpleSocketServer
-from .sensor_handler import ESPSimpleSensorHandler
 
 from .const import DOMAIN
 
@@ -14,7 +13,6 @@ from .const import DOMAIN
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 __SOCKET_SERVER__: ESPSimpleSocketServer | None = None
-__SENSOR_HANDLER__: ESPSimpleSensorHandler | None = None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

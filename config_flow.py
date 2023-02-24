@@ -75,19 +75,18 @@ async def validate_input(hass: HomeAssistant, flow: ConfigFlow):
 
 def get_device_info(flow: ConfigFlow):
     url = "http://" + flow.host + ":" + str(flow.port) + "/info"
-    info = requests.get(url)
+    info = requests.get(url, timeout=10)
 
     if info.status_code != 200:
         return None
 
-    infojson = info.json()
+    data_str = info.content.decode("utf-8")
+    infojson = json.loads(data_str)
 
     if "friendly_name" in infojson:
         flow.name = infojson["friendly_name"]
     if "device_id" not in infojson:
         raise Exception("No device_id specified.")
-    if "sensors" not in infojson:
-        raise Exception("No sensors defined.")
 
     flow.info = infojson
 
@@ -107,12 +106,15 @@ def adopt_device(flow: ConfigFlow):
         "port": flow.port,
         "device_name": flow.device_name,
         "device_id": flow.info["device_id"],
+        "model": flow.info["model"],
+        "sw_version": flow.info["sw_version"],
         "friendly_name": flow.name,
-        "sensors": flow.info["sensors"],
     }
     url = "http://" + flow.host + ":" + str(flow.port) + "/adopt"
     response = requests.post(
-        url, data={"ha_instance": "hello", "key": flow.config["encryption_key"]}
+        url,
+        data={"ha_instance": "hello", "key": flow.config["encryption_key"]},
+        timeout=10,
     )
     if response.status_code != 200:
         flow.errors["base"] = "Could not adopt device. Code: " + str(
