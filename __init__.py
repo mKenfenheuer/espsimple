@@ -42,6 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if __SOCKET_SERVER__ is None:
         __SOCKET_SERVER__ = ESPSimpleSocketServer(hass)
         __SOCKET_SERVER__.start()
+        await register_service(hass)
 
     hass.data.setdefault(DOMAIN, {})
     # TODO 1. Create API instance
@@ -50,7 +51,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await register_service(hass)
 
     return True
 
