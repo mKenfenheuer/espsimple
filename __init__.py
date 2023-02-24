@@ -8,6 +8,7 @@ from .socket_server import ESPSimpleSocketServer
 from homeassistant.components import zeroconf
 from zeroconf.asyncio import AsyncServiceInfo
 from homeassistant.core import logging
+from homeassistant.components.network import async_get_enabled_source_ips
 
 import socket
 
@@ -22,18 +23,8 @@ __SOCKET_SERVER__: ESPSimpleSocketServer | None = None
 
 async def register_service(hass: HomeAssistant):
     aiozc = await zeroconf.async_get_async_instance(hass)
-    ip_list = list()
-    adapters = hass.data["network"].adapters
-    for adapter in adapters:
-        for ip in adapter["ipv4"]:
-            if ip["address"] != "127.0.0.1":
-                logging.info(
-                    "Registering zeroconf service _espsmplsrvr for host "
-                    + hass.data["core.uuid"]
-                    + " on IP "
-                    + ip["address"]
-                )
-                ip_list.append(socket.inet_aton(ip["address"]))
+    ip_list = await async_get_enabled_source_ips(hass)
+
     info = AsyncServiceInfo(
         type_="_espsmplsrvr._tcp.local.",
         name=hass.data["core.uuid"] + "._espsmplsrvr._tcp.local.",
