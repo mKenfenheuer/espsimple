@@ -29,7 +29,7 @@ async def register_service(hass: HomeAssistant):
                 ip_list.append(socket.inet_aton(ip["address"]))
     info = AsyncServiceInfo(
         type_="_espsmplsrvr._tcp.local.",
-        name="_espsmplsrvr._tcp.local.",
+        name=hass.data["core.uuid"] + "._espsmplsrvr._tcp.local.",
         addresses=ip_list,
         port=8901,
         properties={},
