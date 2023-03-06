@@ -114,6 +114,8 @@ class ESPSimpleSensor(SensorEntity):
 
     @property
     def state_class(self) -> SensorStateClass | str | None:
+        if self.info.state_class == "":
+            return None
         try:
             return SensorStateClass(self.info.state_class)
         except:
@@ -121,6 +123,8 @@ class ESPSimpleSensor(SensorEntity):
 
     @property
     def device_class(self) -> SensorDeviceClass | None:
+        if self.info.device_class == "":
+            return None
         try:
             return SensorDeviceClass(self.info.device_class)
         except:
